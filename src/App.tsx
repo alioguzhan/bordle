@@ -92,7 +92,7 @@ function App() {
   }, [wordle]);
 
   const onChar = (letter: string, row: number) => {
-    const regex = /^[a-z][A-Z]*$/;
+    const regex = /^[a-zA-ZğüşöçĞÜŞÖÇı]+$/;
     if (!regex.test(letter)) return;
     // find the first empty box
     const empty = wordle[row].findIndex((x) => x.type === "empty");
@@ -128,7 +128,7 @@ function App() {
       })
       .filter((w) => {
         return corrects.every((c, i) => {
-          return c.letter === w[i];
+          return c.letter === w[c.position];
         });
       })
       .filter((w) => {

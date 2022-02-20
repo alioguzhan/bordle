@@ -12,7 +12,13 @@ export const Keyboard = ({ lang, onChar, onDelete, isRevealing }: Props) => {
     if (value === "DELETE") {
       onDelete();
     } else {
-      onChar(value);
+      if (value === "İ") {
+        onChar("i");
+      } else if (value === "I") {
+        onChar("ı");
+      } else {
+        onChar(value);
+      }
     }
   };
 
