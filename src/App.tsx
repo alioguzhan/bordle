@@ -211,7 +211,7 @@ function App() {
               disabled={
                 presents.length === 0 &&
                 absents.length === 0 &&
-                word.length === 0
+                word.every((x) => x === "")
               }
             >
               {lang === "tr" ? "Analiz Et" : "Analyze"}
@@ -221,21 +221,31 @@ function App() {
         <div className="results">
           <div className="result-count">
             {results.length > 0 ? (
-              <>
-                <strong>{results.length}</strong>
-                {lang === "tr" ? " kelime bulundu : " : " words found : "}
-              </>
+              results.length > 500 ? (
+                lang === "tr" ? (
+                  `cok fazla sonuc var (${results.length}). Sayfa donmasin diye gostermiyorum. biraz daha azaltmaya calis.`
+                ) : (
+                  `Too many results (${results.length}). I can't show them all. Try to reduce the number of words.`
+                )
+              ) : (
+                <>
+                  <strong>{results.length}</strong>
+                  {lang === "tr" ? " kelime bulundu : " : " words found : "}
+                </>
+              )
             ) : (
               <span>{lang === "tr" ? "Sonuc yok" : "No results"}</span>
             )}
           </div>
-          <div className="result-list">
-            {results.map((word) => (
-              <div key={word} className="result-item">
-                {word}
-              </div>
-            ))}
-          </div>
+          {results.length < 501 && (
+            <div className="result-list">
+              {results.map((word) => (
+                <div key={word} className="result-item">
+                  {word}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
