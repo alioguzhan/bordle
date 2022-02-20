@@ -1,36 +1,110 @@
-import React from "react";
-import { toast, ToastContainer } from "react-toastify";
+import React, { useEffect } from "react";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.scss";
 import { useDict } from "./useDict";
 
+type Letter = {
+  letter: string;
+  type: "correct" | "present" | "absent" | "empty";
+  position: number;
+};
+type Wordle = Letter[][];
+
+function initWordle(): Wordle {
+  return [
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+    [
+      { letter: "", type: "empty", position: 0 },
+      { letter: "", type: "empty", position: 1 },
+      { letter: "", type: "empty", position: 2 },
+      { letter: "", type: "empty", position: 3 },
+      { letter: "", type: "empty", position: 4 },
+    ],
+  ];
+}
+
 function App() {
-  const [presents, setPresents] = React.useState<string[]>([]);
-  const [absents, setAbsents] = React.useState<string[]>([]);
-  const [word, setWord] = React.useState<string[]>(["", "", "", "", ""]);
+  const [presents, setPresents] = React.useState<Letter[]>([]);
+  const [absents, setAbsents] = React.useState<Letter[]>([]);
+  const [corrects, setCorrects] = React.useState<Letter[]>([]);
+  const [wordle, setWordle] = React.useState<Wordle>(initWordle());
   const [results, setResults] = React.useState<string[]>([]);
 
-  const absentRef = React.useRef<HTMLInputElement>(null);
-  const presentRef = React.useRef<HTMLInputElement>(null);
   const [lang, setLang] = React.useState<"en" | "tr">(
     navigator.language.includes("tr") ? "tr" : "en"
   );
   const Dict = useDict(lang);
 
+  useEffect(() => {
+    // set absents
+    const absents = wordle?.flat().filter((letter) => letter.type === "absent");
+    setAbsents(absents);
+
+    const notEmptyRows = wordle?.filter((row) =>
+      row.some((letter) => letter.type !== "empty")
+    );
+    // set presents
+    const presents = notEmptyRows[notEmptyRows.length - 1]?.filter(
+      (letter) => letter.type === "present"
+    );
+    setPresents(presents);
+    // set corrects
+    const corrects = notEmptyRows[notEmptyRows.length - 1]?.filter(
+      (letter) => letter.type === "correct"
+    );
+    setCorrects(corrects);
+  }, [wordle]);
   function analyze() {
     const r = Dict.words
       .filter((w) => {
-        return w.split("").every((letter) => !absents.includes(letter));
-      })
-      .filter((w) => {
-        return word.every((c, i) => {
-          if (c === "") return true;
-          if (c === w[i]) return true;
-          return false;
+        return w.split("").every((letter) => {
+          return absents.every((l) => l.letter !== letter);
         });
       })
       .filter((w) => {
-        return presents.every((x) => w.includes(x));
+        return corrects.every((c, i) => {
+          return c.letter === w[i];
+        });
+      })
+      .filter((w) => {
+        return presents.every((p, i) => {
+          return p.letter === w[i] && p.position !== i;
+        });
       });
 
     setResults(r);
@@ -58,160 +132,94 @@ function App() {
         <div className="panel">
           <p>
             {lang === "tr"
-              ? "herhangi bi alana harf eklemek icin beyaz kutunun icine harfi yazin ve kutunun disina tiklayin."
-              : "To add a letter to any section below, click on white boxes and type it and click outside."}
+              ? "Wordle'da denediginiz kelimeleri girin. harflerin durumunu degistirmek icin uzerine tiklayin."
+              : "Type the words you tried on Wordle. Click on any letter to change its status"}
           </p>
-          <div className="blacklist-letters">
-            <h3>{lang === "tr" ? "Bulunmayan Harfler" : "Absent Letters"}</h3>
-
-            <div
-              className="row"
-              style={{ gridTemplateColumns: "repeat(auto-fit, 50px)" }}
-            >
-              {absents.map((letter) => (
-                <div
-                  key={letter}
-                  className="tile"
-                  data-state="absent"
-                  data-animation="pop"
-                  style={{
-                    width: 50,
-                    height: 50,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    const newAbsents = absents.filter((x) => x !== letter);
-                    setAbsents(newAbsents);
-                    absentRef.current?.focus();
-                  }}
-                >
-                  {letter}
-                </div>
-              ))}
-
-              <input
-                autoFocus
-                ref={absentRef}
-                type="text"
-                maxLength={1}
-                className="tile"
-                style={{ color: "#000", textAlign: "center", width: 50 }}
-                onBlur={() => {
-                  const letter = absentRef.current!.value?.toLocaleLowerCase();
-                  if (letter.length === 1) {
-                    if (word.includes(letter) || presents.includes(letter)) {
-                      absentRef.current!.value = "";
-                      toast.warn(`${letter} is already in the word or present`);
-                      return;
-                    }
-                    setAbsents((prev) =>
-                      Array.from(new Set([...prev, letter]))
+          <div className="wordle">
+            {wordle.map((row, i) => (
+              <div
+                tabIndex={i}
+                key={i}
+                className="row"
+                onKeyDown={(e) => {
+                  if (e.keyCode === 9 || e.code === "Backspace") {
+                    const newWordle = [...wordle];
+                    const notEmpty = newWordle[i].filter(
+                      (x) => x.letter !== ""
                     );
-                    absentRef.current!.value = "";
+                    newWordle[i][notEmpty.length - 1] = {
+                      letter: "",
+                      type: "empty",
+                      position: notEmpty.length - 1,
+                    };
+                    setWordle(newWordle);
+                  } else {
+                    // get the pressed letter
+                    const letter = e.key.toLowerCase();
+                    const regex = /^[a-z][A-Z]*$/;
+                    if (!regex.test(letter)) return;
+                    // find the first empty box
+                    const empty = row.findIndex((x) => x.type === "empty");
+                    if (empty === -1) return;
+                    // update the wordle
+                    const newWordle = [...wordle];
+                    newWordle[i][empty] = {
+                      letter,
+                      type: "absent",
+                      position: empty,
+                    };
+                    setWordle(newWordle);
+                    // handle backspace and delete keys from wordle
                   }
                 }}
-              />
-            </div>
-          </div>
-
-          <div className="present-letters">
-            <h3>{lang === "tr" ? "Varolan Harfler" : "Present Letters"}</h3>
-
-            <div
-              className="row"
-              style={{ gridTemplateColumns: "repeat(auto-fit, 50px)" }}
-            >
-              {presents.map((letter) => (
-                <div
-                  key={letter}
-                  className="tile"
-                  data-state="present"
-                  data-animation="pop"
-                  style={{
-                    width: 50,
-                    height: 50,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    const newPresents = presents.filter((x) => x !== letter);
-                    setPresents(newPresents);
-                    presentRef.current?.focus();
-                  }}
-                >
-                  {letter}
-                </div>
-              ))}
-              <input
-                ref={presentRef}
-                type="text"
-                maxLength={1}
-                className="tile"
-                style={{ color: "#000", textAlign: "center", width: 50 }}
-                onBlur={() => {
-                  const letter = presentRef.current!.value?.toLocaleLowerCase();
-                  if (letter.length === 1) {
-                    if (word.includes(letter) || absents.includes(letter)) {
-                      toast.warn(
-                        "This letter is already in the word or absent"
-                      );
-                      presentRef.current!.value = "";
-                      return;
-                    }
-                    setPresents((prev) =>
-                      Array.from(new Set([...prev, letter]))
-                    );
-                    presentRef.current!.value = "";
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="correct-letters">
-            <h3>{lang === "tr" ? "Dogru Harfler" : "Correct Letters"}</h3>
-            <div
-              className="row"
-              style={{ gridTemplateColumns: "repeat(auto-fit, 50px)" }}
-            >
-              {word.map((letter, i) => (
-                <input
-                  key={letter + i}
-                  type="text"
-                  maxLength={1}
-                  value={letter}
-                  className="tile"
-                  data-state={letter !== "" ? "correct" : "empty"}
-                  data-animation={letter !== "" ? "pop" : "flip-out"}
-                  style={{
-                    textAlign: "center",
-                    width: 50,
-                    height: 50,
-                    border: "none",
-                  }}
-                  onChange={(e) => {
-                    const letter = e.target.value.toLocaleLowerCase();
-                    if (presents.includes(letter) || absents.includes(letter)) {
-                      toast.warn(`${letter} is already in the word or absent`);
-                      return;
-                    }
-                    setWord((prev) => {
-                      const newWord = [...prev];
-                      newWord[i] = letter;
-                      return newWord;
-                    });
-                  }}
-                />
-              ))}
-            </div>
+              >
+                {row.map((letter, j) => {
+                  return (
+                    <div
+                      key={j}
+                      style={{
+                        cursor: "pointer",
+                      }}
+                      className="tile"
+                      data-state={letter.type}
+                      data-animation="pop"
+                      onClick={() => {
+                        const newWordle = [...wordle];
+                        if (letter.type === "absent") {
+                          newWordle[i][j] = {
+                            letter: letter.letter,
+                            type: "present",
+                            position: j,
+                          };
+                        } else if (letter.type === "present") {
+                          newWordle[i][j] = {
+                            letter: letter.letter,
+                            type: "correct",
+                            position: j,
+                          };
+                        } else if (letter.type === "correct") {
+                          newWordle[i][j] = {
+                            letter: letter.letter,
+                            type: "absent",
+                            position: j,
+                          };
+                        }
+                        setWordle(newWordle);
+                      }}
+                    >
+                      {letter.letter}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
           <div className="btn-wrapper">
             <button
               className="analyze-btn"
               onClick={analyze}
               disabled={
-                presents.length === 0 &&
-                absents.length === 0 &&
-                word.every((x) => x === "")
+                !wordle.some((row) => row.some((x) => x.type !== "empty"))
               }
             >
               {lang === "tr" ? "Analiz Et" : "Analyze"}
