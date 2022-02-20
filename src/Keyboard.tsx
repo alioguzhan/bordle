@@ -15,7 +15,7 @@ export const Keyboard = ({ lang, onChar, onDelete, isRevealing }: Props) => {
       if (value === "İ") {
         onChar("i");
       } else if (value === "I") {
-        onChar("ı");
+        onChar(lang === "tr" ? "ı" : "i");
       } else {
         onChar(value);
       }
