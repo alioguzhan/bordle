@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.scss";
+import { Keyboard } from "./Keyboard";
 import { useDict } from "./useDict";
 
 type Letter = {
@@ -64,7 +65,7 @@ function App() {
   const [corrects, setCorrects] = React.useState<Letter[]>([]);
   const [wordle, setWordle] = React.useState<Wordle>(initWordle());
   const [results, setResults] = React.useState<string[]>([]);
-
+  const [row, setRow] = React.useState<number>(0);
   const [lang, setLang] = React.useState<"en" | "tr">(
     navigator.language.includes("tr") ? "tr" : "en"
   );
@@ -89,6 +90,35 @@ function App() {
     );
     setCorrects(corrects);
   }, [wordle]);
+
+  const onChar = (letter: string, row: number) => {
+    const regex = /^[a-z][A-Z]*$/;
+    if (!regex.test(letter)) return;
+    // find the first empty box
+    const empty = wordle[row].findIndex((x) => x.type === "empty");
+    if (empty === -1) return;
+    // update the wordle
+    const newWordle = [...wordle];
+    newWordle[row][empty] = {
+      letter,
+      type: "absent",
+      position: empty,
+    };
+    setWordle(newWordle);
+    // handle backspace and delete keys from wordle
+  };
+
+  function onDelete(row: number) {
+    const newWordle = [...wordle];
+    const notEmpty = newWordle[row].filter((x) => x.letter !== "");
+    newWordle[row][notEmpty.length - 1] = {
+      letter: "",
+      type: "empty",
+      position: notEmpty.length - 1,
+    };
+    setWordle(newWordle);
+  }
+
   function analyze() {
     const r = Dict.words
       .filter((w) => {
@@ -103,11 +133,14 @@ function App() {
       })
       .filter((w) => {
         return presents.every((p, i) => {
-          return p.letter === w[i] && p.position !== i;
+          return w.includes(p.letter) && w[p.position] !== p.letter;
         });
       });
 
-    setResults(r);
+    //  make it uniq
+    const uniq = new Set(r);
+    const results = Array.from(uniq);
+    setResults(results.sort());
   }
 
   return (
@@ -139,37 +172,17 @@ function App() {
             {wordle.map((row, i) => (
               <div
                 tabIndex={i}
+                onClick={() => {
+                  setRow(i);
+                }}
                 key={i}
                 className="row"
                 onKeyDown={(e) => {
-                  if (e.keyCode === 9 || e.code === "Backspace") {
-                    const newWordle = [...wordle];
-                    const notEmpty = newWordle[i].filter(
-                      (x) => x.letter !== ""
-                    );
-                    newWordle[i][notEmpty.length - 1] = {
-                      letter: "",
-                      type: "empty",
-                      position: notEmpty.length - 1,
-                    };
-                    setWordle(newWordle);
+                  if (e.code === "Backspace") {
+                    onDelete(i);
                   } else {
-                    // get the pressed letter
                     const letter = e.key.toLowerCase();
-                    const regex = /^[a-z][A-Z]*$/;
-                    if (!regex.test(letter)) return;
-                    // find the first empty box
-                    const empty = row.findIndex((x) => x.type === "empty");
-                    if (empty === -1) return;
-                    // update the wordle
-                    const newWordle = [...wordle];
-                    newWordle[i][empty] = {
-                      letter,
-                      type: "absent",
-                      position: empty,
-                    };
-                    setWordle(newWordle);
-                    // handle backspace and delete keys from wordle
+                    onChar(letter, i);
                   }
                 }}
               >
@@ -214,6 +227,11 @@ function App() {
               </div>
             ))}
           </div>
+          <Keyboard
+            lang={lang}
+            onChar={(v) => onChar(v.toLocaleLowerCase(), row)}
+            onDelete={() => onDelete(row)}
+          />
           <div className="btn-wrapper">
             <button
               className="analyze-btn"
@@ -247,8 +265,8 @@ function App() {
           </div>
           {results.length < 501 && (
             <div className="result-list">
-              {results.map((word) => (
-                <div key={word} className="result-item">
+              {results.map((word, i) => (
+                <div key={word + i} className="result-item">
                   {word}
                 </div>
               ))}
