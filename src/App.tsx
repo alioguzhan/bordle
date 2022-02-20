@@ -13,7 +13,7 @@ function App() {
   const absentRef = React.useRef<HTMLInputElement>(null);
   const presentRef = React.useRef<HTMLInputElement>(null);
   const [lang, setLang] = React.useState<"en" | "tr">(
-    navigator.language === "tr-TR" ? "tr" : "en"
+    navigator.language.includes("tr") ? "tr" : "en"
   );
   const Dict = useDict(lang);
 
@@ -42,7 +42,9 @@ function App() {
       <header className="fixed-header">
         <div></div>
         <div className="logo-wrapper">
-          <div className="logo">BORDLE</div>
+          <a className="logo" href="/">
+            BORDLE
+          </a>
           <p style={{ marginLeft: 20 }}>
             {lang === "tr"
               ? "turkce wordle icin yardimci"
