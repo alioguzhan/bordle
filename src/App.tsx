@@ -122,13 +122,21 @@ function App() {
   function analyze() {
     const r = Dict.words
       .filter((w) => {
-        return w.split("").every((letter) => {
-          return absents.every((l) => l.letter !== letter);
+        return corrects.every((c, i) => {
+          return c.letter === w[c.position];
         });
       })
       .filter((w) => {
-        return corrects.every((c, i) => {
-          return c.letter === w[c.position];
+        return w.split("").every((letter, i) => {
+          return absents.every((l) => {
+            if (l.letter === letter) {
+              const corr = corrects.find((c) => c.letter === l.letter);
+              if (corr) {
+                return l.position !== corr.position && i !== l.position;
+              }
+            }
+            return l.letter !== letter;
+          });
         });
       })
       .filter((w) => {
