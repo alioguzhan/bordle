@@ -1,70 +1,33 @@
 import React, { useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "./App.scss";
-import { Keyboard } from "./Keyboard";
-import { useDict } from "./useDict";
+import { Keyboard } from "./components/Keyboard";
+import { LangSwitcher } from "./components/LangSwitcher";
+import "./index.scss";
+import {
+  analyze,
+  getAbsents,
+  getCorrects,
+  getPresents,
+  initWordle,
+  useDict,
+} from "./lib";
+import {
+  ABSENT,
+  CORRECT,
+  EMPTY,
+  Letter,
+  PRESENT,
+  Word,
+  Wordle,
+} from "./lib/types";
 
-type Letter = {
-  letter: string;
-  type: "correct" | "present" | "absent" | "empty";
-  position: number;
-};
-type Wordle = Letter[][];
-
-function initWordle(): Wordle {
-  return [
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-    [
-      { letter: "", type: "empty", position: 0 },
-      { letter: "", type: "empty", position: 1 },
-      { letter: "", type: "empty", position: 2 },
-      { letter: "", type: "empty", position: 3 },
-      { letter: "", type: "empty", position: 4 },
-    ],
-  ];
-}
-
-function App() {
+export default function App() {
   const [presents, setPresents] = React.useState<Letter[]>([]);
   const [absents, setAbsents] = React.useState<Letter[]>([]);
   const [corrects, setCorrects] = React.useState<Letter[]>([]);
   const [wordle, setWordle] = React.useState<Wordle>(initWordle());
-  const [results, setResults] = React.useState<string[]>([]);
+  const [results, setResults] = React.useState<Word[]>([]);
   const [row, setRow] = React.useState<number>(0);
   const [lang, setLang] = React.useState<"en" | "tr">(
     navigator.language.includes("tr") ? "tr" : "en"
@@ -72,40 +35,25 @@ function App() {
   const Dict = useDict(lang);
 
   useEffect(() => {
-    // set absents
-    const absents = wordle?.flat().filter((letter) => letter.type === "absent");
-    setAbsents(absents);
-
-    const notEmptyRows = wordle?.filter((row) =>
-      row.some((letter) => letter.type !== "empty")
-    );
-    // set presents
-    const presents = notEmptyRows[notEmptyRows.length - 1]?.filter(
-      (letter) => letter.type === "present"
-    );
-    setPresents(presents);
-    // set corrects
-    const corrects = notEmptyRows[notEmptyRows.length - 1]?.filter(
-      (letter) => letter.type === "correct"
-    );
-    setCorrects(corrects);
+    setAbsents(getAbsents(wordle));
+    setPresents(getPresents(wordle));
+    setCorrects(getCorrects(wordle));
   }, [wordle]);
 
   const onChar = (letter: string, row: number) => {
     const regex = /^[a-zA-ZğüşöçĞÜŞÖÇı]+$/;
     if (!regex.test(letter)) return;
     // find the first empty box
-    const empty = wordle[row].findIndex((x) => x.type === "empty");
+    const empty = wordle[row].findIndex((x) => x.type === EMPTY);
     if (empty === -1) return;
     // update the wordle
     const newWordle = [...wordle];
     newWordle[row][empty] = {
       letter,
-      type: "absent",
+      type: ABSENT,
       position: empty,
     };
     setWordle(newWordle);
-    // handle backspace and delete keys from wordle
   };
 
   function onDelete(row: number) {
@@ -113,42 +61,15 @@ function App() {
     const notEmpty = newWordle[row].filter((x) => x.letter !== "");
     newWordle[row][notEmpty.length - 1] = {
       letter: "",
-      type: "empty",
+      type: EMPTY,
       position: notEmpty.length - 1,
     };
     setWordle(newWordle);
   }
 
-  function analyze() {
-    const r = Dict.words
-      .filter((w) => {
-        return corrects.every((c, i) => {
-          return c.letter === w[c.position];
-        });
-      })
-      .filter((w) => {
-        return w.split("").every((letter, i) => {
-          return absents.every((l) => {
-            if (l.letter === letter) {
-              const corr = corrects.find((c) => c.letter === l.letter);
-              if (corr) {
-                return l.position !== corr.position && i !== l.position;
-              }
-            }
-            return l.letter !== letter;
-          });
-        });
-      })
-      .filter((w) => {
-        return presents.every((p, i) => {
-          return w.includes(p.letter) && w[p.position] !== p.letter;
-        });
-      });
-
-    //  make it uniq
-    const uniq = new Set(r);
-    const results = Array.from(uniq);
-    setResults(results.sort());
+  function handleAnalyze() {
+    const r = analyze(Dict.words, corrects, absents, presents);
+    setResults(r);
   }
 
   return (
@@ -206,22 +127,22 @@ function App() {
                       data-animation="pop"
                       onClick={() => {
                         const newWordle = [...wordle];
-                        if (letter.type === "absent") {
+                        if (letter.type === ABSENT) {
                           newWordle[i][j] = {
                             letter: letter.letter,
-                            type: "present",
+                            type: PRESENT,
                             position: j,
                           };
-                        } else if (letter.type === "present") {
+                        } else if (letter.type === PRESENT) {
                           newWordle[i][j] = {
                             letter: letter.letter,
-                            type: "correct",
+                            type: CORRECT,
                             position: j,
                           };
-                        } else if (letter.type === "correct") {
+                        } else if (letter.type === CORRECT) {
                           newWordle[i][j] = {
                             letter: letter.letter,
-                            type: "absent",
+                            type: ABSENT,
                             position: j,
                           };
                         }
@@ -243,9 +164,9 @@ function App() {
           <div className="btn-wrapper">
             <button
               className="analyze-btn"
-              onClick={analyze}
+              onClick={handleAnalyze}
               disabled={
-                !wordle.some((row) => row.some((x) => x.type !== "empty"))
+                !wordle.some((row) => row.some((x) => x.type !== EMPTY))
               }
             >
               {lang === "tr" ? "Analiz Et" : "Analyze"}
@@ -285,25 +206,3 @@ function App() {
     </div>
   );
 }
-
-type LangProps = {
-  lang: "tr" | "en";
-  onChange: (lang: "tr" | "en") => void;
-};
-function LangSwitcher({ lang = "tr", onChange }: LangProps) {
-  return (
-    <div className="lang-switcher">
-      {lang === "tr" ? (
-        <div className={`lang-btn`} onClick={() => onChange("en")}>
-          Switch to EN 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-        </div>
-      ) : (
-        <div className={`lang-btn`} onClick={() => onChange("tr")}>
-          🇹🇷 Turkceye Gec
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default App;
