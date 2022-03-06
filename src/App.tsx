@@ -295,7 +295,7 @@ function LangSwitcher({ lang = "tr", onChange }: LangProps) {
     <div className="lang-switcher">
       {lang === "tr" ? (
         <div className={`lang-btn`} onClick={() => onChange("en")}>
-          Switch to En 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+          Switch to EN 🏴󠁧󠁢󠁥󠁮󠁧󠁿
         </div>
       ) : (
         <div className={`lang-btn`} onClick={() => onChange("tr")}>
