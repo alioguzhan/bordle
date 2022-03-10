@@ -10,9 +10,7 @@ export function getAbsents(wordle: Wordle): Letter[] {
 
 export function getPresents(wordle: Wordle): Letter[] {
   const notEmptyRows = getNotEmptyRows(wordle);
-  return notEmptyRows[notEmptyRows.length - 1]?.filter(
-    (letter) => letter.type === PRESENT
-  );
+  return notEmptyRows?.flat().filter((letter) => letter.type === PRESENT);
 }
 
 export function getCorrects(wordle: Wordle): Letter[] {
